@@ -9,6 +9,9 @@ useradd --system \
     --comment "Caddy web server" \
     caddy
 
+cp ~/go/bin/caddy /usr/bin/
+chmod a+x /usr/bin/caddy
+
 # Write caddy.service file
 cat > /etc/systemd/system/caddy.service << EOF
 # See https://caddyserver.com/docs/install for instructions.
