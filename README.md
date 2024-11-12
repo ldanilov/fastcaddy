@@ -191,3 +191,80 @@ If all went well, you should see output like this:
 ```
 
 ## How to use
+
+We will now show how to set up caddy as a reverse proxy for hosts added
+dynamically. We’ll grab our token from the previous step (assuming here
+that it’s stored in an env var:
+
+``` python
+cf_token = os.environ.get('CADDY_CF_TOKEN', 'XXX')
+```
+
+We can now setup the basic routes needed for caddy:
+
+``` python
+setup_caddy(cf_token)
+```
+
+To view the configuration created, use
+[`gcfg`](https://AnswerDotAI.github.io/fastcaddy/core.html#gcfg):
+
+``` python
+gcfg()
+```
+
+``` json
+{ 'apps': { 'http': { 'servers': { 'srv0': { 'listen': [':80', ':443'],
+                                             'routes': []}}},
+            'tls': { 'automation': { 'policies': [{'issuers': [{'challenges': {'dns': {'provider': {'api_token': 'XXX', 'name': 'cloudflare'}}}, 'module': 'acme'}]}]}}}}
+```
+
+You can also view a sub-path of the configuration:
+
+``` python
+gcfg('/apps/http/servers')
+```
+
+``` json
+{'srv0': {'listen': [':80', ':443'], 'routes': []}}
+```
+
+To add a reverse proxy, use
+[`add_reverse_proxy`](https://AnswerDotAI.github.io/fastcaddy/core.html#add_reverse_proxy):
+
+``` python
+host = 'jph.answer.ai'
+add_reverse_proxy(host, 'localhost:5001')
+```
+
+This is automatically added with an id matching the host, which you can
+view with
+[`gid`](https://AnswerDotAI.github.io/fastcaddy/core.html#gid):
+
+``` python
+gid('jph.answer.ai')
+```
+
+``` json
+{ '@id': 'jph.answer.ai',
+  'handle': [{'handler': 'reverse_proxy', 'upstreams': [{'dial': 'localhost:5001'}]}],
+  'match': [{'host': ['jph.answer.ai']}],
+  'terminal': True}
+```
+
+If you call this again with the same host, it will be replaced:
+
+``` python
+add_reverse_proxy(host, 'localhost:8000')
+gid('jph.answer.ai').handle[0]
+```
+
+``` json
+{'handler': 'reverse_proxy', 'upstreams': [{'dial': 'localhost:8000'}]}
+```
+
+To remove a host, delete its id:
+
+``` python
+del_id(host)
+```
